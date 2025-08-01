@@ -14,7 +14,10 @@ import {app , server} from "./libs/socket.js"
 
 
 // Middlewares
-app.use(cors({ origin: 'https://iiti-so-c-frontend.vercel.app', credentials: true }));
+app.use(cors({ origin: [
+  "https://iiti-so-c-frontend.vercel.app",
+  "https://sd012.princecodes.online"
+], credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api", router);
@@ -48,6 +51,6 @@ server.on("upgrade", (request, socket, head) => {
  
 // Start server
 const PORT = 8000;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0" , () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
