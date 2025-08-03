@@ -1,4 +1,4 @@
-import { mediaCodecs } from "./mediasoup-config.js";
+
 import { createRoom, getRoom, addPeer, getPeer, getPeerName, cleanupPeer } from "./rooms.js";
 import { mediaCodecs, webRtcTransportOptions } from "./mediasoup-config.js";
 
@@ -79,6 +79,9 @@ export default async function handleWebSocketConnection(ws, worker) {
       const room = getRoom(roomId);
       const transport = await room.router.createWebRtcTransport(webRtcTransportOptions);
       transport.on("dtlsstatechange", (state) => state === "closed" && transport.close());
+      transport.on("close", () => {
+        console.log(`Send transport closed for peer ${peerId}`);
+      });
       getPeer(roomId, peerId).sendTransport = transport;
       ws.send(
         JSON.stringify({
@@ -101,6 +104,11 @@ export default async function handleWebSocketConnection(ws, worker) {
       const { kind, rtpParameters } = data;
       const peer = getPeer(roomId, peerId);
       const producer = await peer.sendTransport.produce({ kind, rtpParameters });
+
+      producer.on("transportclose", () => {
+        console.log(`Producer ${producer.id} transport closed, removing`);
+        peer.producers = peer.producers.filter((p) => p.id !== producer.id);
+      });
 
       peer.producers = peer.producers || [];
       peer.producers.push(producer);
@@ -127,7 +135,7 @@ export default async function handleWebSocketConnection(ws, worker) {
 
       const producer = peer.producers.find((p) => p.id === producerId);
       if (producer) {
-        producer.close(); 
+        producer.close();
         peer.producers = peer.producers.filter((p) => p.id !== producerId);
 
         console.log(`🧹 Manually closed producer ${producerId} from ${peerId}`);
@@ -151,6 +159,9 @@ export default async function handleWebSocketConnection(ws, worker) {
     if (type === "createRecvTransport") {
       const room = getRoom(roomId);
       const transport = await room.router.createWebRtcTransport(webRtcTransportOptions);
+      transport.on("close", () => {
+        console.log(`Recv transport closed for peer ${peerId}`);
+      });
       getPeer(roomId, peerId).recvTransport = transport;
       ws.send(
         JSON.stringify({
@@ -180,7 +191,7 @@ export default async function handleWebSocketConnection(ws, worker) {
       const allProducers = [];
       for (const [id, otherPeer] of room.peers) {
         if (id !== peerId && otherPeer.producers) {
-          allProducers.push(...otherPeer.producers.map((p) => ({ producer: p, peerId: id, producerPeerName: getPeerName(peerId) })));
+          allProducers.push(...otherPeer.producers.map((p) => ({ producer: p, peerId: id, producerPeerName: getPeerName(id) })));
         }
       }
 
@@ -194,6 +205,11 @@ export default async function handleWebSocketConnection(ws, worker) {
             producerId: producer.id,
             rtpCapabilities,
             paused: false,
+          });
+
+          consumer.on("transportclose", () => {
+            console.log(`Consumer ${consumer.id} transport closed, removing`);
+            peer.consumers = peer.consumers.filter((c) => c.id !== consumer.id);
           });
 
           peer.consumers = peer.consumers || [];
@@ -217,5 +233,27 @@ export default async function handleWebSocketConnection(ws, worker) {
 
   });
 
-  ws.on("close", () => cleanupPeer(roomId, currentPeerId));
+  ws.on("close", () => {
+    if (!roomId || !currentPeerId) return;
+    const peer = getPeer(roomId, currentPeerId);
+    if (peer) {
+      if (peer.sendTransport) peer.sendTransport.close();
+      if (peer.recvTransport) peer.recvTransport.close();
+    }
+
+    const room = getRoom(roomId);
+    if (room) {
+      for (const [otherId, otherPeer] of room.peers) {
+        if (otherId !== currentPeerId && otherPeer.ws.readyState === ws.OPEN) {
+          otherPeer.ws.send(JSON.stringify({
+            type: "peerLeft",
+            data: { peerId: currentPeerId }
+          }));
+        }
+      }
+    }
+    setTimeout(() => {
+      cleanupPeer(roomId, currentPeerId);
+    }, 5000);
+  });
 }

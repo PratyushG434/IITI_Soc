@@ -6,11 +6,15 @@ export const mediaCodecs = [
     channels: 2,
   },
   {
-    kind: "video",
-    mimeType: "video/VP8", // You can also add H264 or VP9 if needed
-    clockRate: 90000,
-    parameters: {},
-  },
+  kind: "video",
+  mimeType: "video/H264",
+  clockRate: 90000,
+  parameters: { 
+    packetizationMode: 1,
+    levelAsymmetryAllowed: 1,
+    profileLevelId: "42e01f"
+  }
+  }
 ];
 
 export const webRtcTransportOptions = {
@@ -37,7 +41,7 @@ export const workerSettings = {
 export const iceServers = [
   { urls: "stun:stun.l.google.com:19302" }, // Public STUN
   {
-    urls: "turn:YOUR_DOMAIN_OR_IP:3478", // TURN server (Coturn)
+    urls: "turn:sd012.princecodes.online:3478", // TURN server (Coturn)
     username: "user", // Your TURN username
     credential: "pass", // Your TURN password
   },
