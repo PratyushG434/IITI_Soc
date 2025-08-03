@@ -1,5 +1,6 @@
 import { mediaCodecs } from "./mediasoup-config.js";
 import { createRoom, getRoom, addPeer, getPeer, getPeerName, cleanupPeer } from "./rooms.js";
+import { mediaCodecs, webRtcTransportOptions } from "./mediasoup-config.js";
 
 export default async function handleWebSocketConnection(ws, worker) {
   let currentPeerId = null;
@@ -76,12 +77,7 @@ export default async function handleWebSocketConnection(ws, worker) {
 
     if (type === "createSendTransport") {
       const room = getRoom(roomId);
-      const transport = await room.router.createWebRtcTransport({
-        listenIps: [{ ip: "0.0.0.0", announcedIp: "127.0.0.1" }],
-        enableUdp: true,
-        enableTcp: true,
-        preferUdp: true,
-      });
+      const transport = await room.router.createWebRtcTransport(webRtcTransportOptions);
       transport.on("dtlsstatechange", (state) => state === "closed" && transport.close());
       getPeer(roomId, peerId).sendTransport = transport;
       ws.send(
@@ -154,12 +150,7 @@ export default async function handleWebSocketConnection(ws, worker) {
 
     if (type === "createRecvTransport") {
       const room = getRoom(roomId);
-      const transport = await room.router.createWebRtcTransport({
-        listenIps: [{ ip: "0.0.0.0", announcedIp: "127.0.0.1" }],
-        enableUdp: true,
-        enableTcp: true,
-        preferUdp: true,
-      });
+      const transport = await room.router.createWebRtcTransport(webRtcTransportOptions);
       getPeer(roomId, peerId).recvTransport = transport;
       ws.send(
         JSON.stringify({

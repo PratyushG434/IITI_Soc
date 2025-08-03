@@ -8,8 +8,9 @@ import mediasoup from "mediasoup";
 import connectDB from "./db/db.js";
 import router from "./routes/routes.js";
 import handleWebSocketConnection from "./sfu/wsHandler.js";
-import {app , server} from "./libs/socket.js"
-;
+import {app , server} from "./libs/socket.js";
+import { workerSettings } from "./mediasoup-config.js";
+
  
 
 
@@ -30,7 +31,7 @@ const wss = new WebSocketServer({ noServer: true });  // yaha pe server nahi den
 let worker;
 
 (async () => {
-  worker = await mediasoup.createWorker();
+  worker = await mediasoup.createWorker(workerSettings);
   console.log("Mediasoup worker created");
 
   wss.on("connection", (ws) => {
