@@ -46,7 +46,8 @@ export const createMeeting = async (req, res) => {
 // Get meeting by ID
 export const getMeetingById = async (req, res) => {
   try {
-    const meeting = await MeetingCall.findById(req.params.id);
+    const meetingId = req.params.id;
+    const meeting = await MeetingCall.findOne({ meetingId });
     if (!meeting) return res.status(404).json({ message: "Meeting not found" });
     res.status(200).json(meeting);
   } catch (error) {
