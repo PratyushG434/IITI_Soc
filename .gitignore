@@ -1,2 +1,3 @@
 my_key.pem
 .env
+node_modules/

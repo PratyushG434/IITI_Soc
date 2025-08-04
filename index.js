@@ -9,7 +9,7 @@ import connectDB from "./db/db.js";
 import router from "./routes/routes.js";
 import handleWebSocketConnection from "./sfu/wsHandler.js";
 import {app , server} from "./libs/socket.js";
-import { workerSettings } from "./mediasoup-config.js";
+import { workerSettings } from "./sfu/mediasoup-config.js";
 
  
 
